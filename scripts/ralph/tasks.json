@@ -73,6 +73,30 @@
         "priority": 6,
         "passes": true,
         "notes": "No accessibility requirements beyond basic usability."
+      },
+      {
+        "id": "BR-007",
+        "title": "Add new tasks",
+        "acceptanceCriteria": [
+          "Allow adding new tasks",
+          "Save new tasks back to tasks.json with validation",
+          "Show save success/error states"
+        ],
+        "priority": 1,
+        "passes": false,
+        "notes": ""
+      },
+      {
+        "id": "BR-010",
+        "title": "Delete tasks",
+        "acceptanceCriteria": [
+          "Allow deleting tasks",
+          "Save deletions back to tasks.json with validation",
+          "Show save success/error states"
+        ],
+        "priority": 1,
+        "passes": false,
+        "notes": ""
       }
     ]
   }
