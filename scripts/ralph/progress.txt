@@ -1,6 +1,7 @@
 ## Codebase Patterns
 
 - Task creation: derive next story ID from existing prefix/number and seed defaults to satisfy validation.
+- Task deletion: after removing a story, select the nearest remaining entry (same index, then previous) to keep editor focused.
 - File watching: poll `/api/tasks` + `/api/progress` with `cache: "no-store"` and compare against refs to avoid unnecessary UI updates.
 - Task criteria: store acceptance criteria as newline-separated text, splitting + trimming to filter empty lines.
 - Runner UI: subscribe to `/api/runner/logs` via EventSource and cap log history in state.
@@ -68,5 +69,14 @@
 - **Learnings:**
   - Patterns discovered: derive new story IDs from existing prefixes and padded numbers to avoid collisions.
   - Gotchas encountered: seed acceptance criteria so validation passes immediately.
+
+---
+## January 16, 2026 - Delete tasks
+
+- Added story deletion from the editor header with selection fallback to the nearest remaining story.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: choose the next story by index before falling back to the previous item after deletion.
+  - Gotchas encountered: confirm destructive actions to prevent accidental deletions.
 
 ---

@@ -395,6 +395,44 @@ const App = () => {
     setSaveState({ status: "idle", message: "" });
   };
 
+  const handleDeleteStory = () => {
+    if (!activeBranch || !currentStory || locked) {
+      return;
+    }
+    const confirmed = window.confirm(
+      `Delete ${currentStory.id}? This cannot be undone.`
+    );
+    if (!confirmed) {
+      return;
+    }
+    const currentIndex = activeBranch.userStories.findIndex(
+      (story) => story.id === currentStory.id
+    );
+    const updated = tasksData.map((branch) => {
+      if (branch.branchName !== activeBranch.branchName) {
+        return branch;
+      }
+      return {
+        ...branch,
+        userStories: branch.userStories.filter(
+          (story) => story.id !== currentStory.id
+        ),
+      };
+    });
+    const remainingStories =
+      updated.find((branch) => branch.branchName === activeBranch.branchName)
+        ?.userStories ?? [];
+    const nextStory =
+      remainingStories[currentIndex] ||
+      remainingStories[currentIndex - 1] ||
+      remainingStories[0] ||
+      null;
+    setTasksData(updated);
+    setSelectedStoryId(nextStory ? nextStory.id : null);
+    setDirty(formatTasks(updated) !== serverTasksRef.current);
+    setSaveState({ status: "idle", message: "" });
+  };
+
   const validationError = useMemo(
     () => validateTasksData(tasksData),
     [tasksData]
@@ -573,6 +611,14 @@ const App = () => {
             </p>
           </div>
           <div className="panel__actions">
+            <button
+              type="button"
+              className="panel__button panel__button--danger"
+              onClick={handleDeleteStory}
+              disabled={!currentStory || locked}
+            >
+              Delete story
+            </button>
             <button
               type="button"
               className="save-button"

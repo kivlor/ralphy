@@ -139,6 +139,16 @@ h2 {
   box-shadow: 0 10px 18px rgba(242, 154, 46, 0.18);
 }
 
+.panel__button--danger {
+  border-color: rgba(255, 116, 102, 0.45);
+  background: rgba(255, 116, 102, 0.12);
+  color: var(--danger);
+}
+
+.panel__button--danger:hover:not(:disabled) {
+  box-shadow: 0 10px 18px rgba(255, 116, 102, 0.18);
+}
+
 .panel__meta {
   font-size: 0.85rem;
   color: var(--text-muted);

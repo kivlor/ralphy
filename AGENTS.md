@@ -9,3 +9,4 @@
 - Task saving: validate all branches/stories before PUT `/api/tasks` and update `serverTasksRef` after save.
 - Startup UX: include quick-start guidance and contextual empty/error states near panels.
 - Task creation: derive the next story id from existing prefixes and seed new stories with valid defaults.
+- Task deletion: remove the active story, then select the nearest remaining item to keep the editor populated.
