@@ -47,7 +47,7 @@
           "Show running status and live logs"
         ],
         "priority": 4,
-        "passes": false,
+        "passes": true,
         "notes": "Store command locally, not committed."
       },
       {
@@ -59,7 +59,7 @@
           "Show save success/error states"
         ],
         "priority": 5,
-        "passes": false,
+        "passes": true,
         "notes": "Block save on invalid schema."
       },
       {

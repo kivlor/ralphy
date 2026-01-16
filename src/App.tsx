@@ -27,14 +27,73 @@ const normalizeCriteria = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const validateTasksData = (payload: TaskBranch[]) => {
+  if (!Array.isArray(payload)) {
+    return "Tasks must be an array.";
+  }
+  if (!payload.length) {
+    return "No task branches loaded.";
+  }
+  for (const [index, entry] of payload.entries()) {
+    if (!entry || typeof entry !== "object") {
+      return `Branch ${index + 1} must be an object.`;
+    }
+    if (!entry.branchName.trim()) {
+      return `Branch ${index + 1} needs a name.`;
+    }
+    if (!Array.isArray(entry.userStories)) {
+      return `Branch ${index + 1} needs stories.`;
+    }
+    for (const [storyIndex, story] of entry.userStories.entries()) {
+      const label = `Story ${index + 1}.${storyIndex + 1}`;
+      if (!story.id.trim()) {
+        return `${label} needs an ID.`;
+      }
+      if (!story.title.trim()) {
+        return `${label} needs a title.`;
+      }
+      if (
+        !Array.isArray(story.acceptanceCriteria) ||
+        !story.acceptanceCriteria.some((item) => item.trim().length)
+      ) {
+        return `${label} needs at least one acceptance criterion.`;
+      }
+      if (!Number.isFinite(story.priority) || story.priority <= 0) {
+        return `${label} priority must be positive.`;
+      }
+      if (typeof story.passes !== "boolean") {
+        return `${label} requires a pass/fail value.`;
+      }
+    }
+  }
+  return null;
+};
+
 const App = () => {
   const [progress, setProgress] = useState("Loading progress...");
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [runnerCommand, setRunnerCommand] = useState("");
+  const [runnerStatus, setRunnerStatus] = useState<{
+    running: boolean;
+    command: string | null;
+    startedAt: string | null;
+  }>({
+    running: false,
+    command: null,
+    startedAt: null,
+  });
+  const [runnerLogs, setRunnerLogs] = useState<string[]>([]);
+  const [runnerError, setRunnerError] = useState<string | null>(null);
+  const [runnerBusy, setRunnerBusy] = useState(false);
   const [tasksData, setTasksData] = useState<TaskBranch[]>([]);
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [saveState, setSaveState] = useState<{
+    status: "idle" | "saving" | "success" | "error";
+    message: string;
+  }>({ status: "idle", message: "" });
   const pollingRef = useRef<Timeout | null>(null);
   const serverTasksRef = useRef("");
   const progressRef = useRef("");
@@ -56,6 +115,7 @@ const App = () => {
     setTasksData(parsed);
     setDirty(false);
     setLocked(false);
+    setSaveState({ status: "idle", message: "" });
     if (!selectedStoryId && parsed[0]?.userStories?.length) {
       setSelectedStoryId(parsed[0].userStories[0].id);
     }
@@ -115,6 +175,102 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const savedCommand = window.localStorage.getItem("ralphy-runner-command");
+    if (savedCommand) {
+      setRunnerCommand(savedCommand);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("ralphy-runner-command", runnerCommand);
+  }, [runnerCommand]);
+
+  useEffect(() => {
+    const eventSource = new EventSource(`${API_BASE}/runner/logs`);
+    const handleStatus = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as {
+          running: boolean;
+          command: string | null;
+          startedAt: string | null;
+        };
+        setRunnerStatus(payload);
+      } catch {
+        setRunnerError("Failed to parse runner status.");
+      }
+    };
+    const handleLog = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as { line: string };
+        setRunnerLogs((prev) => {
+          const next = [...prev, payload.line];
+          if (next.length > 500) {
+            return next.slice(-500);
+          }
+          return next;
+        });
+      } catch {
+        setRunnerError("Failed to parse runner logs.");
+      }
+    };
+    eventSource.addEventListener("status", handleStatus);
+    eventSource.addEventListener("log", handleLog);
+    eventSource.onopen = () => setRunnerError(null);
+    eventSource.onerror = () =>
+      setRunnerError("Runner log stream disconnected. Retrying...");
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
+  const handleStartRunner = async () => {
+    if (!runnerCommand.trim()) {
+      setRunnerError("Enter a command before starting.");
+      return;
+    }
+    setRunnerBusy(true);
+    try {
+      const response = await fetch(`${API_BASE}/runner/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: runnerCommand.trim() }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error ?? "Failed to start runner.");
+      }
+      setRunnerError(null);
+    } catch (error) {
+      setRunnerError(
+        error instanceof Error ? error.message : "Failed to start runner."
+      );
+    } finally {
+      setRunnerBusy(false);
+    }
+  };
+
+  const handleStopRunner = async () => {
+    setRunnerBusy(true);
+    try {
+      const response = await fetch(`${API_BASE}/runner/stop`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error ?? "Failed to stop runner.");
+      }
+      setRunnerError(null);
+    } catch (error) {
+      setRunnerError(
+        error instanceof Error ? error.message : "Failed to stop runner."
+      );
+    } finally {
+      setRunnerBusy(false);
+    }
+  };
+
   const handleReload = () => {
     try {
       const parsed = JSON.parse(serverTasksRef.current) as TaskBranch[];
@@ -124,6 +280,7 @@ const App = () => {
     }
     setDirty(false);
     setLocked(false);
+    setSaveState({ status: "idle", message: "" });
   };
 
   const activeBranch = tasksData[0];
@@ -174,6 +331,11 @@ const App = () => {
     }));
   };
 
+  const validationError = useMemo(
+    () => validateTasksData(tasksData),
+    [tasksData]
+  );
+
   const storyErrors = useMemo(() => {
     if (!currentStory) {
       return null;
@@ -191,6 +353,43 @@ const App = () => {
           : "Priority must be a positive number",
     };
   }, [currentStory]);
+
+  const canSave =
+    !locked &&
+    dirty &&
+    !validationError &&
+    saveState.status !== "saving";
+
+  const handleSave = async () => {
+    const error = validateTasksData(tasksData);
+    if (error) {
+      setSaveState({ status: "error", message: error });
+      return;
+    }
+    setSaveState({ status: "saving", message: "Saving..." });
+    try {
+      const response = await fetch(`${API_BASE}/tasks`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: formatTasks(tasksData),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to save tasks.json.");
+      }
+      const formatted = formatTasks(tasksData);
+      serverTasksRef.current = formatted;
+      setDirty(false);
+      setLocked(false);
+      setSaveState({ status: "success", message: "Saved to tasks.json." });
+    } catch (error) {
+      setSaveState({
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to save tasks.json.",
+      });
+    }
+  };
 
   return (
     <main className="app">
@@ -277,8 +476,31 @@ const App = () => {
             <h2>Story editor</h2>
             <p className="panel__subtitle">Form-based editing</p>
           </div>
-          <span className="panel__meta">Details</span>
+          <div className="panel__actions">
+            <button
+              type="button"
+              className="save-button"
+              onClick={handleSave}
+              disabled={!canSave}
+            >
+              {saveState.status === "saving" ? "Saving..." : "Save"}
+            </button>
+            <span
+              className={
+                saveState.status === "success"
+                  ? "save-status save-status--success"
+                  : saveState.status === "error"
+                    ? "save-status save-status--error"
+                    : "save-status"
+              }
+            >
+              {saveState.message || "Details"}
+            </span>
+          </div>
         </header>
+        {dirty && validationError ? (
+          <p className="error">{validationError}</p>
+        ) : null}
         {currentStory ? (
           <form className="editor" onSubmit={(event) => event.preventDefault()}>
             <label className="field">
@@ -392,6 +614,76 @@ const App = () => {
         </header>
         {progressError ? <p className="error">{progressError}</p> : null}
         <pre className="progress">{progress}</pre>
+      </section>
+
+      <section className="panel panel--runner">
+        <header className="panel__header">
+          <div>
+            <h2>Runner</h2>
+            <p className="panel__subtitle">Command launcher</p>
+          </div>
+          <span className="panel__meta">
+            {runnerStatus.running ? "Running" : "Idle"}
+          </span>
+        </header>
+        <div className="runner">
+          <label className="field">
+            <span className="field__label">Command</span>
+            <input
+              type="text"
+              placeholder="npm run test"
+              value={runnerCommand}
+              onChange={(event) => setRunnerCommand(event.target.value)}
+              disabled={runnerBusy || runnerStatus.running}
+            />
+          </label>
+          <div className="runner__actions">
+            <button
+              type="button"
+              className="runner__button runner__button--start"
+              onClick={handleStartRunner}
+              disabled={runnerBusy || runnerStatus.running}
+            >
+              Start
+            </button>
+            <button
+              type="button"
+              className="runner__button runner__button--stop"
+              onClick={handleStopRunner}
+              disabled={runnerBusy || !runnerStatus.running}
+            >
+              Stop
+            </button>
+            <div className="runner__status">
+              <span className="runner__status-label">Status</span>
+              <span
+                className={
+                  runnerStatus.running
+                    ? "runner__status-pill runner__status-pill--active"
+                    : "runner__status-pill"
+                }
+              >
+                {runnerStatus.running ? "Running" : "Stopped"}
+              </span>
+            </div>
+          </div>
+          {runnerStatus.startedAt ? (
+            <div className="runner__meta">
+              Started{" "}
+              {new Date(runnerStatus.startedAt).toLocaleString()}
+            </div>
+          ) : null}
+          {runnerError ? <p className="error">{runnerError}</p> : null}
+          <div className="runner__logs">
+            {runnerLogs.length ? (
+              <pre className="runner__log-text">
+                {runnerLogs.join("\n")}
+              </pre>
+            ) : (
+              <p className="empty">No logs yet.</p>
+            )}
+          </div>
+        </div>
       </section>
     </main>
   );

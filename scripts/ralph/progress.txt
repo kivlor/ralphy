@@ -2,6 +2,8 @@
 
 - File watching: poll `/api/tasks` + `/api/progress` with `cache: "no-store"` and compare against refs to avoid unnecessary UI updates.
 - Task criteria: store acceptance criteria as newline-separated text, splitting + trimming to filter empty lines.
+- Runner UI: subscribe to `/api/runner/logs` via EventSource and cap log history in state.
+- Saving tasks: validate all branches/stories before PUT `/api/tasks`, then update `serverTasksRef` to stay in sync.
 
 ## January 16, 2026 - Scaffold backend for file I/O and process control
 
@@ -12,7 +14,6 @@
 - Gotchas encountered: Runner start uses shell mode when no args are provided.
 
 ---
-
 ## January 16, 2026 - Implement file watching and editor lock flow
 
 - Implemented polling-based file watching for tasks/progress with editor locking on external task changes.
@@ -29,5 +30,23 @@
 - **Learnings:**
   - Patterns discovered: keep story edits localized via `updateCurrentStory` to preserve branch structure.
   - Gotchas encountered: normalize acceptance criteria by trimming and filtering empty rows before storing.
+
+---
+## January 16, 2026 - Progress panel and runner panel
+
+- Implemented a runner panel with command persistence, start/stop controls, status, and live log streaming.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: EventSource streaming from `/api/runner/logs` is the easiest way to sync status/logs.
+  - Gotchas encountered: store runner commands in localStorage to avoid committing them.
+
+---
+## January 16, 2026 - Wire UI to backend and save tasks.json
+
+- Implemented task validation + save flow with disabled states and status messaging.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: validate the entire tasks payload before saving and update local refs on success.
+  - Gotchas encountered: show validation errors only when edits are dirty to avoid noisy load states.
 
 ---
