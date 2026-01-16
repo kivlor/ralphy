@@ -35,7 +35,7 @@
           "Inline validation errors for required fields"
         ],
         "priority": 3,
-        "passes": false,
+        "passes": true,
         "notes": "Simple, sexy, dark."
       },
       {

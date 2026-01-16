@@ -1,6 +1,7 @@
 ## Codebase Patterns
 
 - File watching: poll `/api/tasks` + `/api/progress` with `cache: "no-store"` and compare against refs to avoid unnecessary UI updates.
+- Task criteria: store acceptance criteria as newline-separated text, splitting + trimming to filter empty lines.
 
 ## January 16, 2026 - Scaffold backend for file I/O and process control
 
@@ -19,5 +20,14 @@
 - **Learnings:**
   - Patterns discovered: track server snapshots in refs to decide when to lock or refresh.
   - Gotchas encountered: ensure read-only editor state when external changes arrive mid-edit.
+
+---
+## January 16, 2026 - Build dark UI shell with task list and form editor
+
+- Implemented a dark-themed layout with task list cards and a form-based story editor with inline validation.
+- Files changed: src/App.tsx, src/App.css, scripts/ralph/tasks.json, scripts/ralph/progress.txt, AGENTS.md
+- **Learnings:**
+  - Patterns discovered: keep story edits localized via `updateCurrentStory` to preserve branch structure.
+  - Gotchas encountered: normalize acceptance criteria by trimming and filtering empty rows before storing.
 
 ---

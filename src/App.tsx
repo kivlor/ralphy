@@ -1,16 +1,37 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 
 type Timeout = ReturnType<typeof setInterval>;
 
 const API_BASE = "http://localhost:7258/api";
 const POLL_INTERVAL_MS = 2500;
 
-const formatTasks = (data: unknown) => JSON.stringify(data, null, 2);
+type UserStory = {
+  id: string;
+  title: string;
+  acceptanceCriteria: string[];
+  priority: number;
+  passes: boolean;
+  notes?: string;
+};
+
+type TaskBranch = {
+  branchName: string;
+  userStories: UserStory[];
+};
+
+const formatTasks = (data: TaskBranch[]) => JSON.stringify(data, null, 2);
+
+const normalizeCriteria = (value: string) =>
+  value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
 const App = () => {
   const [progress, setProgress] = useState("Loading progress...");
   const [progressError, setProgressError] = useState<string | null>(null);
-  const [draftTasks, setDraftTasks] = useState("");
+  const [tasksData, setTasksData] = useState<TaskBranch[]>([]);
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -23,7 +44,7 @@ const App = () => {
     dirtyRef.current = dirty;
   }, [dirty]);
 
-  const handleServerTasks = (next: string) => {
+  const handleServerTasks = (next: string, parsed: TaskBranch[]) => {
     if (next === serverTasksRef.current) {
       return;
     }
@@ -32,7 +53,12 @@ const App = () => {
       setLocked(true);
       return;
     }
-    setDraftTasks(next);
+    setTasksData(parsed);
+    setDirty(false);
+    setLocked(false);
+    if (!selectedStoryId && parsed[0]?.userStories?.length) {
+      setSelectedStoryId(parsed[0].userStories[0].id);
+    }
   };
 
   const loadTasks = async () => {
@@ -42,8 +68,11 @@ const App = () => {
         throw new Error(`Failed to load tasks.json (${response.status})`);
       }
       const data = await response.json();
-      const formatted = formatTasks(data);
-      handleServerTasks(formatted);
+      if (!Array.isArray(data)) {
+        throw new Error("tasks.json has an unexpected shape");
+      }
+      const formatted = formatTasks(data as TaskBranch[]);
+      handleServerTasks(formatted, data as TaskBranch[]);
       setTasksError(null);
     } catch (error) {
       setTasksError(
@@ -86,17 +115,82 @@ const App = () => {
     };
   }, []);
 
-  const handleDraftChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const next = event.target.value;
-    setDraftTasks(next);
-    setDirty(next !== serverTasksRef.current);
-  };
-
   const handleReload = () => {
-    setDraftTasks(serverTasksRef.current);
+    try {
+      const parsed = JSON.parse(serverTasksRef.current) as TaskBranch[];
+      setTasksData(parsed);
+    } catch {
+      setTasksData([]);
+    }
     setDirty(false);
     setLocked(false);
   };
+
+  const activeBranch = tasksData[0];
+  const currentStory = useMemo(() => {
+    if (!activeBranch) {
+      return null;
+    }
+    return (
+      activeBranch.userStories.find((story) => story.id === selectedStoryId) ||
+      activeBranch.userStories[0] ||
+      null
+    );
+  }, [activeBranch, selectedStoryId]);
+
+  useEffect(() => {
+    if (!currentStory && activeBranch?.userStories?.length) {
+      setSelectedStoryId(activeBranch.userStories[0].id);
+    }
+  }, [currentStory, activeBranch]);
+
+  const updateCurrentStory = (
+    updater: (story: UserStory) => UserStory
+  ) => {
+    if (!activeBranch || !currentStory) {
+      return;
+    }
+    const updated = tasksData.map((branch) => {
+      if (branch.branchName !== activeBranch.branchName) {
+        return branch;
+      }
+      return {
+        ...branch,
+        userStories: branch.userStories.map((story) =>
+          story.id === currentStory.id ? updater(story) : story
+        ),
+      };
+    });
+    setTasksData(updated);
+    setDirty(formatTasks(updated) !== serverTasksRef.current);
+  };
+
+  const handleDraftChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const next = event.target.value;
+    const parsed = normalizeCriteria(next);
+    updateCurrentStory((story) => ({
+      ...story,
+      acceptanceCriteria: parsed,
+    }));
+  };
+
+  const storyErrors = useMemo(() => {
+    if (!currentStory) {
+      return null;
+    }
+    return {
+      id: currentStory.id.trim().length ? "" : "Required",
+      title: currentStory.title.trim().length ? "" : "Required",
+      acceptanceCriteria:
+        currentStory.acceptanceCriteria.some((item) => item.trim().length)
+          ? ""
+          : "Add at least one acceptance criterion",
+      priority:
+        Number.isFinite(currentStory.priority) && currentStory.priority > 0
+          ? ""
+          : "Priority must be a positive number",
+    };
+  }, [currentStory]);
 
   return (
     <main className="app">
@@ -117,10 +211,17 @@ const App = () => {
         </div>
       </header>
 
-      <section className="panel">
+      <section className="panel panel--list">
         <header className="panel__header">
-          <h2>tasks.json</h2>
-          <span className="panel__meta">Editor</span>
+          <div>
+            <h2>Tasks</h2>
+            <p className="panel__subtitle">
+              {activeBranch ? activeBranch.branchName : "No branch loaded"}
+            </p>
+          </div>
+          <span className="panel__meta">
+            {activeBranch ? `${activeBranch.userStories.length} stories` : ""}
+          </span>
         </header>
         {locked ? (
           <div className="banner">
@@ -131,16 +232,160 @@ const App = () => {
           </div>
         ) : null}
         {tasksError ? <p className="error">{tasksError}</p> : null}
-        <textarea
-          className="editor"
-          value={draftTasks}
-          onChange={handleDraftChange}
-          readOnly={locked}
-          spellCheck={false}
-        />
+        <div className="task-list">
+          {activeBranch?.userStories?.length ? (
+            activeBranch.userStories.map((story) => (
+              <button
+                key={story.id}
+                type="button"
+                className={
+                  story.id === currentStory?.id
+                    ? "task-card task-card--active"
+                    : "task-card"
+                }
+                onClick={() => setSelectedStoryId(story.id)}
+                disabled={locked}
+              >
+                <div className="task-card__header">
+                  <span className="task-card__id">{story.id}</span>
+                  <span
+                    className={
+                      story.passes
+                        ? "pill pill--pass"
+                        : "pill pill--fail"
+                    }
+                  >
+                    {story.passes ? "Pass" : "Pending"}
+                  </span>
+                </div>
+                <p className="task-card__title">{story.title}</p>
+                <div className="task-card__meta">
+                  <span>Priority {story.priority}</span>
+                  <span>{story.acceptanceCriteria.length} criteria</span>
+                </div>
+              </button>
+            ))
+          ) : (
+            <p className="empty">No stories loaded yet.</p>
+          )}
+        </div>
       </section>
 
-      <section className="panel">
+      <section className="panel panel--editor">
+        <header className="panel__header">
+          <div>
+            <h2>Story editor</h2>
+            <p className="panel__subtitle">Form-based editing</p>
+          </div>
+          <span className="panel__meta">Details</span>
+        </header>
+        {currentStory ? (
+          <form className="editor" onSubmit={(event) => event.preventDefault()}>
+            <label className="field">
+              <span className="field__label">Story ID</span>
+              <input
+                type="text"
+                value={currentStory.id}
+                onChange={(event) =>
+                  updateCurrentStory((story) => ({
+                    ...story,
+                    id: event.target.value,
+                  }))
+                }
+                readOnly={locked}
+              />
+              {storyErrors?.id ? (
+                <span className="field__error">{storyErrors.id}</span>
+              ) : null}
+            </label>
+            <label className="field">
+              <span className="field__label">Title</span>
+              <input
+                type="text"
+                value={currentStory.title}
+                onChange={(event) =>
+                  updateCurrentStory((story) => ({
+                    ...story,
+                    title: event.target.value,
+                  }))
+                }
+                readOnly={locked}
+              />
+              {storyErrors?.title ? (
+                <span className="field__error">{storyErrors.title}</span>
+              ) : null}
+            </label>
+            <label className="field field--textarea">
+              <span className="field__label">Acceptance criteria</span>
+              <textarea
+                value={currentStory.acceptanceCriteria.join("\n")}
+                onChange={handleDraftChange}
+                readOnly={locked}
+                spellCheck={false}
+              />
+              {storyErrors?.acceptanceCriteria ? (
+                <span className="field__error">
+                  {storyErrors.acceptanceCriteria}
+                </span>
+              ) : null}
+            </label>
+            <div className="field-row">
+              <label className="field">
+                <span className="field__label">Priority</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={Number.isFinite(currentStory.priority) ? currentStory.priority : ""}
+                  onChange={(event) =>
+                    updateCurrentStory((story) => ({
+                      ...story,
+                      priority: Number(event.target.value),
+                    }))
+                  }
+                  readOnly={locked}
+                />
+                {storyErrors?.priority ? (
+                  <span className="field__error">{storyErrors.priority}</span>
+                ) : null}
+              </label>
+              <label className="field">
+                <span className="field__label">Passes</span>
+                <select
+                  value={currentStory.passes ? "true" : "false"}
+                  onChange={(event) =>
+                    updateCurrentStory((story) => ({
+                      ...story,
+                      passes: event.target.value === "true",
+                    }))
+                  }
+                  disabled={locked}
+                >
+                  <option value="false">Pending</option>
+                  <option value="true">Pass</option>
+                </select>
+              </label>
+            </div>
+            <label className="field field--textarea">
+              <span className="field__label">Notes</span>
+              <textarea
+                value={currentStory.notes ?? ""}
+                onChange={(event) =>
+                  updateCurrentStory((story) => ({
+                    ...story,
+                    notes: event.target.value,
+                  }))
+                }
+                readOnly={locked}
+                spellCheck={false}
+              />
+            </label>
+          </form>
+        ) : (
+          <p className="empty">Select a story to edit.</p>
+        )}
+      </section>
+
+      <section className="panel panel--progress">
         <header className="panel__header">
           <h2>progress.txt</h2>
           <span className="panel__meta">Live view</span>
