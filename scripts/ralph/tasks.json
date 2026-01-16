@@ -1,0 +1,79 @@
+[
+  {
+    "branchName": "build-ralphy",
+    "userStories": [
+      {
+        "id": "BR-001",
+        "title": "Scaffold backend for file I/O and process control",
+        "acceptanceCriteria": [
+          "Provide a local backend that can read tasks.json and progress.txt from scripts/ralph",
+          "Provide endpoints to save validated tasks.json",
+          "Provide endpoints to start/stop a user-specified ralph command and stream logs"
+        ],
+        "priority": 1,
+        "passes": false,
+        "notes": "Prefer minimal dependencies; offline-only."
+      },
+      {
+        "id": "BR-002",
+        "title": "Implement file watching and editor lock flow",
+        "acceptanceCriteria": [
+          "Watch tasks.json and progress.txt for external changes",
+          "Auto-refresh progress view when progress.txt changes",
+          "If tasks.json changes and there are unsaved edits, lock editor and prompt reload"
+        ],
+        "priority": 2,
+        "passes": false,
+        "notes": "Cross-platform macOS/Linux."
+      },
+      {
+        "id": "BR-003",
+        "title": "Build dark UI shell with task list and form editor",
+        "acceptanceCriteria": [
+          "Provide a dark-themed layout with task list + details editor",
+          "Form-based editing for userStories fields",
+          "Inline validation errors for required fields"
+        ],
+        "priority": 3,
+        "passes": false,
+        "notes": "Simple, sexy, dark."
+      },
+      {
+        "id": "BR-004",
+        "title": "Progress panel and runner panel",
+        "acceptanceCriteria": [
+          "Render progress.txt as plain text in a read-only panel",
+          "Runner panel allows configuring a command and starting/stopping it",
+          "Show running status and live logs"
+        ],
+        "priority": 4,
+        "passes": false,
+        "notes": "Store command locally, not committed."
+      },
+      {
+        "id": "BR-005",
+        "title": "Wire UI to backend and save tasks.json",
+        "acceptanceCriteria": [
+          "Load tasks.json on app start",
+          "Save edits back to tasks.json with validation",
+          "Show save success/error states"
+        ],
+        "priority": 5,
+        "passes": false,
+        "notes": "Block save on invalid schema."
+      },
+      {
+        "id": "BR-006",
+        "title": "Startup UX and polish",
+        "acceptanceCriteria": [
+          "Show top-level app title and brief guidance",
+          "Provide clear empty/error states",
+          "Ensure layout works on small screens"
+        ],
+        "priority": 6,
+        "passes": false,
+        "notes": "No accessibility requirements beyond basic usability."
+      }
+    ]
+  }
+]
