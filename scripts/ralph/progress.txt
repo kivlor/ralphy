@@ -1,2 +1,12 @@
 ## Codebase Patterns
 
+
+## January 16, 2026 - Scaffold backend for file I/O and process control
+
+- Added a minimal Node HTTP backend for tasks/progress I/O and runner control with SSE logs.
+- Files changed: index.js, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: SSE via `/api/runner/logs` for live log streaming.
+  - Gotchas encountered: Runner start uses shell mode when no args are provided.
+
+---

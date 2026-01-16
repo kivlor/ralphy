@@ -11,7 +11,7 @@
           "Provide endpoints to start/stop a user-specified ralph command and stream logs"
         ],
         "priority": 1,
-        "passes": false,
+        "passes": true,
         "notes": "Prefer minimal dependencies; offline-only."
       },
       {
