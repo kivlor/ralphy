@@ -1,0 +1,62 @@
+## Codebase Patterns
+
+- File watching: poll `/api/tasks` + `/api/progress` with `cache: "no-store"` and compare against refs to avoid unnecessary UI updates.
+- Task criteria: store acceptance criteria as newline-separated text, splitting + trimming to filter empty lines.
+- Runner UI: subscribe to `/api/runner/logs` via EventSource and cap log history in state.
+- Saving tasks: validate all branches/stories before PUT `/api/tasks`, then update `serverTasksRef` to stay in sync.
+- Startup UX: add quick-start guidance plus contextual empty/error states near panels.
+
+## January 16, 2026 - Scaffold backend for file I/O and process control
+
+- Added a minimal Node HTTP backend for tasks/progress I/O and runner control with SSE logs.
+- Files changed: index.js, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: SSE via `/api/runner/logs` for live log streaming.
+- Gotchas encountered: Runner start uses shell mode when no args are provided.
+
+---
+## January 16, 2026 - Implement file watching and editor lock flow
+
+- Implemented polling-based file watching for tasks/progress with editor locking on external task changes.
+- Files changed: src/App.tsx, src/App.css, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: track server snapshots in refs to decide when to lock or refresh.
+  - Gotchas encountered: ensure read-only editor state when external changes arrive mid-edit.
+
+---
+## January 16, 2026 - Build dark UI shell with task list and form editor
+
+- Implemented a dark-themed layout with task list cards and a form-based story editor with inline validation.
+- Files changed: src/App.tsx, src/App.css, scripts/ralph/tasks.json, scripts/ralph/progress.txt, AGENTS.md
+- **Learnings:**
+  - Patterns discovered: keep story edits localized via `updateCurrentStory` to preserve branch structure.
+  - Gotchas encountered: normalize acceptance criteria by trimming and filtering empty rows before storing.
+
+---
+## January 16, 2026 - Progress panel and runner panel
+
+- Implemented a runner panel with command persistence, start/stop controls, status, and live log streaming.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: EventSource streaming from `/api/runner/logs` is the easiest way to sync status/logs.
+  - Gotchas encountered: store runner commands in localStorage to avoid committing them.
+
+---
+## January 16, 2026 - Wire UI to backend and save tasks.json
+
+- Implemented task validation + save flow with disabled states and status messaging.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: validate the entire tasks payload before saving and update local refs on success.
+  - Gotchas encountered: show validation errors only when edits are dirty to avoid noisy load states.
+
+---
+## January 16, 2026 - Startup UX and polish
+
+- Added quick-start guidance plus clearer empty/error states for tasks and progress panels.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: pair empty/error messaging with actionable file or command hints.
+  - Gotchas encountered: keep guidance compact so the header doesn't overwhelm small screens.
+
+---
