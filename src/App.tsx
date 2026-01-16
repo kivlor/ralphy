@@ -27,6 +27,45 @@ const normalizeCriteria = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const getNextStoryId = (stories: UserStory[]) => {
+  const existing = new Set(
+    stories.map((story) => story.id.trim()).filter(Boolean)
+  );
+  let prefix = "STORY";
+  let width = 3;
+  let max = 0;
+
+  for (const story of stories) {
+    const match = story.id.match(/^(.*?)-(\d+)$/);
+    if (!match) {
+      continue;
+    }
+    const [, candidatePrefix, candidateNumber] = match;
+    if (!candidatePrefix) {
+      continue;
+    }
+    if (prefix === "STORY") {
+      prefix = candidatePrefix;
+      width = candidateNumber.length;
+    }
+    if (candidatePrefix !== prefix) {
+      continue;
+    }
+    const value = Number.parseInt(candidateNumber, 10);
+    if (Number.isFinite(value)) {
+      max = Math.max(max, value);
+    }
+  }
+
+  let next = max + 1;
+  let candidate = `${prefix}-${String(next).padStart(width, "0")}`;
+  while (existing.has(candidate)) {
+    next += 1;
+    candidate = `${prefix}-${String(next).padStart(width, "0")}`;
+  }
+  return candidate;
+};
+
 const validateTasksData = (payload: TaskBranch[]) => {
   if (!Array.isArray(payload)) {
     return "Tasks must be an array.";
@@ -332,6 +371,30 @@ const App = () => {
     }));
   };
 
+  const handleAddStory = () => {
+    if (!activeBranch || locked) {
+      return;
+    }
+    const nextId = getNextStoryId(activeBranch.userStories);
+    const newStory: UserStory = {
+      id: nextId,
+      title: "New story",
+      acceptanceCriteria: ["Define acceptance criteria"],
+      priority: 1,
+      passes: false,
+      notes: "",
+    };
+    const updated = tasksData.map((branch) =>
+      branch.branchName === activeBranch.branchName
+        ? { ...branch, userStories: [...branch.userStories, newStory] }
+        : branch
+    );
+    setTasksData(updated);
+    setSelectedStoryId(nextId);
+    setDirty(formatTasks(updated) !== serverTasksRef.current);
+    setSaveState({ status: "idle", message: "" });
+  };
+
   const validationError = useMemo(
     () => validateTasksData(tasksData),
     [tasksData]
@@ -428,9 +491,19 @@ const App = () => {
               {activeBranch ? activeBranch.branchName : "No branch loaded"}
             </p>
           </div>
-          <span className="panel__meta">
-            {activeBranch ? `${activeBranch.userStories.length} stories` : ""}
-          </span>
+          <div className="panel__actions">
+            <button
+              type="button"
+              className="panel__button"
+              onClick={handleAddStory}
+              disabled={!activeBranch || locked}
+            >
+              Add story
+            </button>
+            <span className="panel__meta">
+              {activeBranch ? `${activeBranch.userStories.length} stories` : ""}
+            </span>
+          </div>
         </header>
         {locked ? (
           <div className="banner">

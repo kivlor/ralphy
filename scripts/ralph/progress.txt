@@ -1,5 +1,6 @@
 ## Codebase Patterns
 
+- Task creation: derive next story ID from existing prefix/number and seed defaults to satisfy validation.
 - File watching: poll `/api/tasks` + `/api/progress` with `cache: "no-store"` and compare against refs to avoid unnecessary UI updates.
 - Task criteria: store acceptance criteria as newline-separated text, splitting + trimming to filter empty lines.
 - Runner UI: subscribe to `/api/runner/logs` via EventSource and cap log history in state.
@@ -58,5 +59,14 @@
 - **Learnings:**
   - Patterns discovered: pair empty/error messaging with actionable file or command hints.
   - Gotchas encountered: keep guidance compact so the header doesn't overwhelm small screens.
+
+---
+## January 16, 2026 - Add new tasks
+
+- Added a task list action to append a new story with a derived ID and valid defaults.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: derive new story IDs from existing prefixes and padded numbers to avoid collisions.
+  - Gotchas encountered: seed acceptance criteria so validation passes immediately.
 
 ---
