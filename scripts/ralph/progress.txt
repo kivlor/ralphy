@@ -1,5 +1,6 @@
 ## Codebase Patterns
 
+- File watching: poll `/api/tasks` + `/api/progress` with `cache: "no-store"` and compare against refs to avoid unnecessary UI updates.
 
 ## January 16, 2026 - Scaffold backend for file I/O and process control
 
@@ -7,6 +8,16 @@
 - Files changed: index.js, scripts/ralph/tasks.json, scripts/ralph/progress.txt
 - **Learnings:**
   - Patterns discovered: SSE via `/api/runner/logs` for live log streaming.
-  - Gotchas encountered: Runner start uses shell mode when no args are provided.
+- Gotchas encountered: Runner start uses shell mode when no args are provided.
+
+---
+
+## January 16, 2026 - Implement file watching and editor lock flow
+
+- Implemented polling-based file watching for tasks/progress with editor locking on external task changes.
+- Files changed: src/App.tsx, src/App.css, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: track server snapshots in refs to decide when to lock or refresh.
+  - Gotchas encountered: ensure read-only editor state when external changes arrive mid-edit.
 
 ---

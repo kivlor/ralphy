@@ -14,12 +14,139 @@ body {
 
 .app {
   min-height: 100vh;
+  padding: 2.5rem;
   display: grid;
-  place-items: center;
-  text-align: center;
-  padding: 2rem;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-auto-rows: min-content;
+}
+
+.app__header {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app__subtitle {
+  margin: 0.5rem 0 0;
+  color: #5a5a5f;
+}
+
+.app__status {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 h1 {
-  margin: 0 0 0.5rem;
+  margin: 0;
+  font-size: 2rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.panel {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 320px;
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel__meta {
+  font-size: 0.85rem;
+  color: #6d6d73;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.editor {
+  flex: 1;
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid #dadada;
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-family: "SF Mono", "Fira Code", Menlo, monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+  background: #fbfbfb;
+}
+
+.editor[readonly] {
+  background: #f0f0f2;
+  color: #6d6d73;
+}
+
+.progress {
+  flex: 1;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem;
+  background: #111316;
+  color: #e8e8e8;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  overflow: auto;
+  min-height: 320px;
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #ffe9d2;
+  color: #7a3b00;
+}
+
+.banner button {
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.error {
+  margin: 0;
+  color: #b3261e;
+}
+
+.status {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: #ededf1;
+  color: #4a4a4a;
+}
+
+.status--warn {
+  background: #ffe2c8;
+  color: #7a3b00;
+}
+
+.status--lock {
+  background: #d6e4ff;
+  color: #1e3a8a;
 }

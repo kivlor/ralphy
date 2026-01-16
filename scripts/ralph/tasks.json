@@ -23,7 +23,7 @@
           "If tasks.json changes and there are unsaved edits, lock editor and prompt reload"
         ],
         "priority": 2,
-        "passes": false,
+        "passes": true,
         "notes": "Cross-platform macOS/Linux."
       },
       {
