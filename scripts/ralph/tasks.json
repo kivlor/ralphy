@@ -71,7 +71,7 @@
           "Ensure layout works on small screens"
         ],
         "priority": 6,
-        "passes": false,
+        "passes": true,
         "notes": "No accessibility requirements beyond basic usability."
       }
     ]

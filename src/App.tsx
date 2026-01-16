@@ -284,6 +284,7 @@ const App = () => {
   };
 
   const activeBranch = tasksData[0];
+  const hasStories = Boolean(activeBranch?.userStories?.length);
   const currentStory = useMemo(() => {
     if (!activeBranch) {
       return null;
@@ -399,6 +400,15 @@ const App = () => {
           <p className="app__subtitle">
             Watching scripts/ralph for tasks and progress changes.
           </p>
+          <ul className="app__guidance">
+            <li>
+              Start the API with <code>npm start</code> and keep it running.
+            </li>
+            <li>
+              Use <code>npm run dev</code> to run this UI on port 7257.
+            </li>
+            <li>Pick a story, edit details, then save back to disk.</li>
+          </ul>
         </div>
         <div className="app__status">
           <span className={dirty ? "status status--warn" : "status"}>
@@ -430,9 +440,17 @@ const App = () => {
             </button>
           </div>
         ) : null}
-        {tasksError ? <p className="error">{tasksError}</p> : null}
+        {tasksError ? (
+          <div className="empty-state">
+            <p className="error">{tasksError}</p>
+            <p className="empty">
+              Ensure the API is running and{" "}
+              <code>scripts/ralph/tasks.json</code> exists.
+            </p>
+          </div>
+        ) : null}
         <div className="task-list">
-          {activeBranch?.userStories?.length ? (
+          {hasStories ? (
             activeBranch.userStories.map((story) => (
               <button
                 key={story.id}
@@ -465,7 +483,10 @@ const App = () => {
               </button>
             ))
           ) : (
-            <p className="empty">No stories loaded yet.</p>
+            <p className="empty">
+              No stories loaded yet. Waiting on{" "}
+              <code>scripts/ralph/tasks.json</code>.
+            </p>
           )}
         </div>
       </section>
@@ -474,7 +495,9 @@ const App = () => {
         <header className="panel__header">
           <div>
             <h2>Story editor</h2>
-            <p className="panel__subtitle">Form-based editing</p>
+            <p className="panel__subtitle">
+              Form-based editing with inline validation.
+            </p>
           </div>
           <div className="panel__actions">
             <button
@@ -603,7 +626,11 @@ const App = () => {
             </label>
           </form>
         ) : (
-          <p className="empty">Select a story to edit.</p>
+          <p className="empty">
+            {hasStories
+              ? "Select a story to edit."
+              : "Stories will appear here once tasks.json loads."}
+          </p>
         )}
       </section>
 
@@ -612,8 +639,17 @@ const App = () => {
           <h2>progress.txt</h2>
           <span className="panel__meta">Live view</span>
         </header>
-        {progressError ? <p className="error">{progressError}</p> : null}
-        <pre className="progress">{progress}</pre>
+        {progressError ? (
+          <div className="empty-state">
+            <p className="error">{progressError}</p>
+            <p className="empty">
+              Create or update <code>scripts/ralph/progress.txt</code> to see
+              updates here.
+            </p>
+          </div>
+        ) : (
+          <pre className="progress">{progress}</pre>
+        )}
       </section>
 
       <section className="panel panel--runner">
@@ -680,7 +716,9 @@ const App = () => {
                 {runnerLogs.join("\n")}
               </pre>
             ) : (
-              <p className="empty">No logs yet.</p>
+              <p className="empty">
+                No logs yet. Start a command to stream output.
+              </p>
             )}
           </div>
         </div>

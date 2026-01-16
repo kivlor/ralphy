@@ -4,6 +4,7 @@
 - Task criteria: store acceptance criteria as newline-separated text, splitting + trimming to filter empty lines.
 - Runner UI: subscribe to `/api/runner/logs` via EventSource and cap log history in state.
 - Saving tasks: validate all branches/stories before PUT `/api/tasks`, then update `serverTasksRef` to stay in sync.
+- Startup UX: add quick-start guidance plus contextual empty/error states near panels.
 
 ## January 16, 2026 - Scaffold backend for file I/O and process control
 
@@ -48,5 +49,14 @@
 - **Learnings:**
   - Patterns discovered: validate the entire tasks payload before saving and update local refs on success.
   - Gotchas encountered: show validation errors only when edits are dirty to avoid noisy load states.
+
+---
+## January 16, 2026 - Startup UX and polish
+
+- Added quick-start guidance plus clearer empty/error states for tasks and progress panels.
+- Files changed: src/App.tsx, src/App.css, AGENTS.md, scripts/ralph/tasks.json, scripts/ralph/progress.txt
+- **Learnings:**
+  - Patterns discovered: pair empty/error messaging with actionable file or command hints.
+  - Gotchas encountered: keep guidance compact so the header doesn't overwhelm small screens.
 
 ---
